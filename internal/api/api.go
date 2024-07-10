@@ -1,14 +1,52 @@
 package api
 
 import (
+	"context"
+	"errors"
 	"net/http"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"go.uber.org/zap"
+
+	"github.com/mattheuzz/journey-go/internal/api/spec"
+	"github.com/mattheuzz/journey-go/internal/pgstore"
 )
 
-type API struct{}
+type store interface {
+	GetParticipant(ctx context.Context, participantID uuid.UUID) (pgstore.Participant, error)
+	ConfirmParticipant(ctx context.Context, participantID uuid.UUID) error
+}
+
+type API struct {
+	store  store
+	logger *zap.Logger
+}
+
 // Confirms a participant on a trip.
 // (PATCH /participants/{participantId}/confirm)
 func (api API) PatchParticipantsParticipantIDConfirm(w http.ResponseWriter, r *http.Request, participantID string) *spec.Response {
-	panic("not implemented") // TODO: Implement
+	id, err := uuid.Parse(participantID)
+	if err != nil {
+		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Invalid participant ID"})
+	}
+	participant, err := api.store.GetParticipant(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Participant not found"})
+		}
+		api.logger.Error("failed to get participant", zap.Error(err), zap.String("participant_id", participantID))
+		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+	if participant.IsConfirmed {
+		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Participant already confirmed"})
+	}
+	if err := api.store.ConfirmParticipant(r.Context(), id); err != nil {
+		api.logger.Error("failed to confirm participant", zap.Error(err), zap.String("participant_id", participantID))
+		return spec.GetTripsTripIDParticipantsJSON400Response(spec.Error{Message: "Something went wrong"})
+	}
+
+	return spec.PatchParticipantsParticipantIDConfirmJSON204Response(nil)
 }
 
 // Create a new trip
@@ -70,4 +108,3 @@ func (api API) PostTripsTripIDLinks(w http.ResponseWriter, r *http.Request, trip
 func (api API) GetTripsTripIDParticipants(w http.ResponseWriter, r *http.Request, tripID string) *spec.Response {
 	panic("not implemented") // TODO: Implement
 }
-
