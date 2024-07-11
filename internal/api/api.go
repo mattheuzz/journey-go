@@ -24,7 +24,7 @@ type API struct {
 	logger *zap.Logger
 }
 
-func newAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
+func NewAPI(pool *pgxpool.Pool, logger *zap.Logger) API {
 	return API{
 		pgstore.New(pool),
 		logger,
