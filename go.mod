@@ -9,9 +9,14 @@ require (
 	github.com/go-chi/render v1.0.3
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.6.0
+	github.com/phenpessoa/gutils v0.0.0-20240130030144-d391b9329afd
 )
 
-require go.uber.org/multierr v1.10.0 // indirect
+require (
+	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/sync v0.1.0 // indirect
+)
 
 require (
 	github.com/ajg/form v1.5.1 // indirect
